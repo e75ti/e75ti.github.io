@@ -26,4 +26,4 @@ All embedded in the hive roof, with built in solar panel and a battery pack (3s2
 
 
 
-When the bees become anxious, their movement and noises increase. In summer, they flap their wings to cool off the hive. So, if we provide them with both comfort and comfortable hive, they can focus solely on the honey production. Keep in mind, too, that bees are almost fully instinctual animals, so they won't forget things like humans do. If they suddenly become hot two years after this system is installed and they've been hatched in a comfortable enviroment - they will instinctually flap their wings to cool the hive.
+When bees become anxious, their movement and noises increase. In summer, they flap their wings to cool off the hive. So, if we provide them with both comfort and comfortable hive, they can focus solely on the honey production. Keep in mind, too, that bees are almost fully instinctual animals, so they won't forget things like humans do. If they suddenly become hot two years after this system is installed and they've been hatched in a comfortable enviroment - they will instinctually flap their wings to cool the hive.
