@@ -4,6 +4,7 @@ summary: "Faced with bad air, how I decided on the Xiaomi, and how I broke out f
 date: 2026-06-28
 weight: 1
 draft: false
+showTableOfContents: true
 ---
 <img src="featured.webp" style="display:block; margin-bottom:50 auto; height:auto;">
 
@@ -12,13 +13,13 @@ draft: false
 Hello! This is a quick and nice writeup of how I after having a bout of bad air after my hot air station offgassed a litle I realized that I really need some way to purify air apart from airing out the room! I decided to purchase a Xiaomi Air Purifier, specifically 4 Lite and how I decided on and liberated it from Xiaomi IoT ecosystem and made it run open source software!
 
 ------------
-### *What you need*
+## *- What you need*
 
 *Let me just say before you read this that you do NOT need soldering for this, you just need an UART programmer, I used CP2102 USB-UART bridge, but you can use any microcontroller, Arduino, ESP32, Raspberry Pi, they all can act as UART programmerg. WARNING: Do keep in mind the UART **must** be 3.3V. 5V RX/TX logic will potentially damage the ESP32 chip. You also need three DuPont female to male cables and one DuPont male to male cable. I also used 1m USB extension cable for my CP2102 for easier handling and use. And some painter's tape to temporaily tape down the USB cable to the board so that it doesn't move while I flash. Reading flash takes ~5 minutes and you need to do it thrice, twice to backup and once afte write to verify. Write is a bit faster, about ~2 minutes.*
 
 --------
 
-# - The story
+## - The story
 
 I've been a Home Assistant user for a few years now, very happy with it.
 Recently I've gotten more interested in keeping the air in my environment healthier, as I realized I spend a lot of time in the room, but also I started soldering (with an air extractor though of course) and even with using air extractor I could still smell that some fumes were escaping and the room smelled bad and I even got a small headache. It took venting the room with all windows open for about ~4 hours for it to fully clean out.
@@ -46,9 +47,9 @@ WOOOOOOO!
 What a score, crazy! And there's even a great [contrib](https://github.com/dhewg/esphome-miot/blob/main/config/zhimi.airp.rmb1.yaml) by dhewg of it's sample config. Keep in mind it all comes originally from miot-spec specification: https://home.miot-spec.com/spec/zhimi.airp.rmb1
 
 -----------
-# - The installation
+## - The installation
 
-## 1. Generating the flash file that we will flash to the device
+### 1. Generating the flash file that we will flash to the device
 
 Before we flash we need to generate the file that we will flash.
 
@@ -68,7 +69,7 @@ You have:
 
 That you can provide, change or generate/regenerate. Don't worry it's pretty easy and intuitive and documentation for this is plentiful.
 
-## 2. Device disassembly
+### 2. Device disassembly
 
 So, to disassemble the device it's not too hard, this video explained it pretty well:
 
@@ -109,7 +110,7 @@ Here's how to connect it as I wrote above:
 [Thanks for initial guide and some photos to dhewg!](https://github.com/dhewg/esphome-miot/wiki/Xiaomi-Smart-Air-Purifier-4-Lite-(zhimi.airp.rmb1))
 
 ----------
-## 3. Esptool and flashing
+### 3. Esptool and flashing
 
 I installed `esptool` with pip. (in my case I used venv, since my system doesn't allow system pip packages, but you could also use your system package manager).
 
@@ -246,7 +247,7 @@ I (1546) wifi:set country: cc=EU schan=1 nchan=13 policy=1
 
 I (1546) phy_init: phy_version 4771,450c73b,Aug 16 2023,11:03:10
 I (1556) phy_init: Support multiple PHY init data bins
-I (1566) wifi:mode : softAP (1e:ea:ac:1a:85:91)
+I (1566) wifi:mode : xxxxxxxxxxx (xxxxxxxxxxxxx)
 I (1566) wifi:Total power save buffer number: 10
 I (1566) wifi:Init max length of beacon: 752/752
 I (1566) wifi:Init max length of beacon: 752/752
@@ -279,7 +280,7 @@ Indeed we confirm it's **MIIO MODEL: zhimi.airp.rmb1**
 
 Perfect!
 
-### - Now we do reads
+#### - Now we do reads
 
 -  Backup the full flash contents and put it somewhere safe:
 
@@ -320,7 +321,7 @@ d83b72b746d29a5ca42063d86a13ab9d purifier-firmware_2_flash_original.factory.bin
 
 If they don't match corruption happened during read, reseat cables and redo the process until they match.
 
-### - Now we flash
+#### - Now we flash
 
 Now we write our generated image:
 
@@ -350,7 +351,7 @@ Then we power off the board (unplug DC) and power again and do our 3rd read in t
 
 `esptool --port /dev/ttyUSB0 --baud 115200 read_flash 0x0 0x400000 toverifyfinalrwrite.bin`
 
-### - Verify
+#### - Verify
 
 And finally to verify we do:
 
@@ -367,7 +368,7 @@ cmp: EOF on ‘purifier-firmware_flash_esphome.factory.bin’ after byte 966960,
 
 Very nice! You see how it matches on same byte 966960 that is the length of our firmware we flashed. This proves write was good and verified individually by us and esptool post-write hash.
 
-### - We finish!
+#### - We finish!
 
 That's it! Now your Purifier's main board is running ESPhome firmware.
 
@@ -377,13 +378,220 @@ Here's how it looks in my home assistant:
 
 {{< figure src="homeassistant.webp" alt="If you see this alt text, something went wrong with displaying the image of home assistant layout." caption="My home assistant." >}}
 
+## 4. Filter reset
+
+So, this one is short and sweet. There's an implementation within the ESPHome stack of resetting the filter. **You just click the reset button** and.. That's it :) (you can see the button in the image right above)
+
+The filters last depending on usage, which the sensor roughly tracks, but it's really off depending on environment, plus there is some planned obsolescence, they last usually 2x as long and with average light usage I'd say they're fine for a year and maybe a few more months. (since most areas of the world do have actually ok (acceptable) AQI even without purifiers). By the way there's 3 filters, anti-formaldehyde (green filter), antibacterial (purple) and normal true HEPA (grey).
+
+Honestly I never really liked specialized coating of organic metal salts or chemicals that deactivate formaldehyde. I would use formaldehyde if I had strong proof that there is indeed formaldehyde offgassing in your room and I'd fix that first. Antibacterial, well, I just don't see the usecase, more like a gimmick. But ok, sure, for reducing strong microbial load in air of airborne bacteria and viruses you could get a strong air purifier with UV light. That'd probably be better solution.
+
+I recommend the standard grey HEPA version.
+
+## 5. Fixing the Auto - most sought after fix!
+
+So, I thought hard about this, since I wanted to have all the 'brains' (code) be ESPHome yaml, so that even if your wifi goes down or home assistant does, your control is still great on auto, but this basically meant we lose all of in depth log analysis since esp would have to store/request that, we lose out on CPU cycles (not that we need many but we do want responsive and quick machine) and most importantly predictable.
+
+And the main dealbreaker was even if we got it to work on ESPHome, we'd basically have a weird semi-auto where we can't really manually switch into this mode, but instead it self-regulates. Meh. Suboptimal. I suggest just leaving defaults, you can always use manual on 100% ootb or auto which is not good but it will keep your AQI to around constant 60-70. It will react hard to AQI 100+.
+
+Not great not terrible.
+
+So, I chose that Home Assistant be our full controller, while still retaining out of the box auto/sleep/manual_100% modes.
+
+### The Pipeline
+
+Here's the pipeline I implemented:
+```
+          PM Sensor 1        PM Sensor 2
+                \              /
+                 \            /
+                  ▼          ▼
+          ┌────────────────────────┐
+          │ ① PM Average (Median)  │
+          └────────────────────────┘
+                      │
+                      ▼
+     ┌──────────────────────────────┐
+     │ ② Moving Averages            │
+     │   - Fast (1 min)             │
+     │   - Slow (10 min)            │
+     └──────────────────────────────┘
+                      │
+          ┌───────────┴───────────┐
+          ▼                       ▼
+┌──────────────────┐   ┌────────────────────┐
+│ ③Spike Detection │   │ ④ Air Quality Eval │
+│  (rate of change)│   │   (emergency calc)  │
+└──────────────────┘   └────────────────────┘
+          └───────────┬───────────┘
+                      ▼
+          ┌────────────────────────┐
+          │ ⑤ Target Fan Speed     │
+          └────────────────────────┘
+                      │
+                      ▼
+          ┌────────────────────────┐
+          │ ⑥ Fan Controller       │
+          │    Automation          │
+          └────────────────────────┘
+```
+#### - Step by step
+
+1. So, since I had two sensors I made a PM average out of them, but if you just have one or want to just use the one from air purifier, skip step 1 and move to step 2 directly.
+2. So I realized I haven't forgotten how I created this above, here's how you do it for 2) (moving averages). Go to Settings, Devices & Services, Helpers and in bottom you have "Create Helper" button. If you don't have, update your Home Assistant you're on too old version.
+3. So, for moving averages, you create two helpers of type "Filter" and you select type moving average (time based)
+4. You set fast one to 1 minute and slow one to 10 minutes. They basically slowly average out the medians over 1min and 10mins independently and we will use those averaged out values to track pollution and compare changes (localized spikes vs big spikes)
+5. We also create spike detection (how much air is changing (spiking)) by creating manual template helper:
+
+```django
+{{ (
+  states('sensor.fast_moving_avg_mainroom_pm_2_5') | float(0)
+  - states('sensor.slow_moving_avg_mainroom_pm_2_5') | float(0)
+) | round(2) }}
+```
+
+6. We create also manual fan override input boolean (0 or 1)
+7. We also create another template which will act as sensor, I call it "emergency_bad_air", it's for detection of sudden emergency air pollution such as smoke or some other pollutant (trigger emergency cleaning, fan on 100%):
+
+```django
+{% set pm = states('sensor.fast_moving_avg_mainroom_pm_2_5') | float(0) %}
+{% set spike = states('sensor.sensor_spike_change') | float(0) %}
+
+{# base logic #}
+{% set base =
+  (0 if pm < 5 else
+   10 if pm < 10 else
+   30 if pm < 20 else
+   75 if pm < 35 else
+   100 if pm < 50 else
+   85)
+%}
+
+{# spike adjustment #}
+{% set base = base + (
+  30 if spike > 40 else
+  20 if spike > 20 else
+  10 if spike > 10 else
+  0
+) %}
+
+{# sleep cap #}
+{% if is_state('binary_sensor.sleep_time', 'on') and base > 15 %}
+  {% set base = 15 %}
+{% endif %}
+
+{# emergency override #}
+{% set base = 100 if is_state('binary_sensor.emergency', 'on') else base %}
+
+{# clamp #}
+{% set base = [0, [base, 100] | min] | max %}
+
+{# --- HARD SNAP TABLE (ONLY VALID OUTPUTS) --- #}
+{% set steps = [0, 6.66, 13.33, 20, 26.66, 33.33, 40, 46.66, 53.33, 60, 66.66, 73.33, 80, 86.66, 93.33, 100] %}
+
+{# find closest allowed value #}
+{% set ns = namespace(best=0, diff=9999) %}
+
+{% for s in steps %}
+  {% set d = (base - s) | abs %}
+  {% if d < ns.diff %}
+    {% set ns.best = s %}
+    {% set ns.diff = d %}
+  {% endif %}
+{% endfor %}
+
+{{ ns.best }}
+```
+
+
+8. Right, you will also need a binary sensor for sleep time, create a template, type binary sensor, name sleep_time and set this code:
+```
+{% set h = now().hour %}
+{{ h >= 23 or h < 7 }}
+```
+
+9. And emergency bad air sensor:
+
+```django
+{% set pm = states('sensor.fast_moving_avg_mainroom_pm_2_5') | float(0) %}
+{% set spike = states('sensor.sensor_spike_change') | float(0) %}
+
+{{ pm > 120 or spike > 60 }}
+```
+
+10. That's it, now create custom automation (settings -> automation & scenes -> create automation). Name it auto_purifier_control, here's the code:
+
+```django
+alias: auto_air_purifier_controller
+trigger:
+  - platform: state
+    entity_id: sensor.target_fan_speed
+  - platform: time_pattern
+    minutes: "/1"
+
+condition:
+  - condition: state
+    entity_id: input_boolean.manual_fan_override
+    state: "off"
+
+action:
+  - variables:
+      target: "{{ states('sensor.target_fan_speed') | float(0) }}"
+      current: "{{ state_attr('fan.air_purifier_fan','percentage') | float(0) }}"
+      step: 5
+      hysteresis: 3
+
+      within_deadband: "{{ (target - current) | abs < hysteresis }}"
+
+  - choose:
+      - conditions:
+          - condition: state
+            entity_id: binary_sensor.emergency_bad_air
+            state: "on"
+        sequence:
+          - service: fan.set_percentage
+            target:
+              entity_id: fan.air_purifier_fan
+            data:
+              percentage: 100
+
+      - conditions:
+          - condition: state
+            entity_id: binary_sensor.emergency_bad_air
+            state: "off"
+          - condition: template
+            value_template: "{{ not within_deadband }}"
+        sequence:
+          - variables:
+              new_value: >
+                {% if target > current %}
+                  {{ [current + step, target] | min }}
+                {% elif target < current %}
+                  {{ [current - step, target] | max }}
+                {% else %}
+                  {{ current }}
+                {% endif %}
+
+          - service: fan.set_percentage
+            target:
+              entity_id: fan.air_purifier_fan
+            data:
+              percentage: "{{ new_value | float | round(0) }}"
+
+mode: restart
+```
+
+And that's it :)
+
 ---------
-# Opinions on precision:
+
+## Opinions on precision:
+
 ### - Particle sensor
 
 The PM2.5 particle sensor is spot on. It's a Plantower PMS9103M It's reminded me very much of the very well known Plantower PMS5003. Very good sensor. Basic, but precise. Does what's needed.
 
-### Temperature and Humidity:
+### - Temperature and Humidity
 
 No idea what humidity and temp sensors it uses, they claim it's:
 
@@ -396,5 +604,7 @@ Well, from my experience, the humidity is very good. Spot on.
 You can rely on it's humidity sensor, temperature, no. 
 
 ---------
+
+2 day testing results is that it works great! I'll continue using it like this.
 
 Thanks for reading! :)
